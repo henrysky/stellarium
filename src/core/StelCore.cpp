@@ -3108,7 +3108,7 @@ Vec3d StelCore::getMouseJ2000Pos() const
 Vec3d StelCore::calculateParallaxDiff(double JD) const {
 	// ICRS coordinates are barycentric (Gaia gives barycentric RA/DEC coordinates)
 	// diff between solar system bayrcentric location at STAR_CATALOG_JDEPOCH and current solar system bayrcentric location
-	Vec3d PosNow = getCurrentPlanet()->getBarycentricEclipticPos(JD);
+	Vec3d PosNow = getCurrentPlanet()->getHeliocentricEclipticPos(JD);
 	// Transform from heliocentric ecliptic to equatorial coordinates
 	PosNow = matVsop87ToJ2000.upper3x3() * -1. * PosNow;  // need to times -1 because technically it is doing (0,0,0) - PosNow
 	return PosNow;
@@ -3129,7 +3129,7 @@ Vec3d StelCore::getParallaxDiff(double JD) const {
 Vec3d StelCore::calculateAberrationVec(double JD) const {
 	// Solar system barycentric velocity
 	Q_UNUSED(JD);
-	Vec3d vel = getCurrentPlanet()->getBarycentricEclipticVelocity(JD);
+	Vec3d vel = getCurrentPlanet()->getHeliocentricEclipticVelocity();
 	vel = StelCore::matVsop87ToJ2000 * vel * (AU/(86400.0*SPEED_OF_LIGHT));
 	return vel;
 }

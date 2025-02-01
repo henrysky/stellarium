@@ -1782,16 +1782,7 @@ void Planet::computePosition(const StelObserver *observer, const double dateJDE,
 
 	if (fabs(dateJDE-lastJDE)>deltaJDE)
 	{
-		// if Sun, then position is always 0,0,0 because coordFunc is computing barycentric coordinates
-		if (this->getParent() == nullptr)
-		{
-			eclipticPos.set(0., 0., 0.);
-			eclipticVelocity.set(0., 0., 0.);
-		}
-		else
-		{
-			coordFunc(dateJDE, &eclipticPos[0], &eclipticVelocity[0], orbitPtr);
-		}
+		coordFunc(dateJDE, &eclipticPos[0], &eclipticVelocity[0], orbitPtr);
 		lastJDE = dateJDE;
 	}
 	this->aberrationPush=aberrationPush;
@@ -1799,15 +1790,7 @@ void Planet::computePosition(const StelObserver *observer, const double dateJDE,
 
 void Planet::computePosition(const double dateJDE, Vec3d &eclPosition, Vec3d &eclVelocity) const
 {
-	// if Sun, then position is always 0,0,0 because coordFunc is computing barycentric coordinates
-	if (this->getParent() == nullptr)
-	{
-		eclPosition.set(0., 0., 0.);
-		eclVelocity.set(0., 0., 0.);
-	}
-	else {
-		coordFunc(dateJDE, &eclPosition[0], &eclVelocity[0], orbitPtr);
-	}
+	coordFunc(dateJDE, &eclPosition[0], &eclVelocity[0], orbitPtr);
 }
 
 // Compute the transformation matrix from the local Planet coordinate system to the parent Planet coordinate system.
@@ -2047,11 +2030,6 @@ double Planet::getMeanSolarDay() const
 // This is only needed for orbit drawing.
 Vec3d Planet::getEclipticPos(double dateJDE) const
 {
-	// for the Sun
-	if (parent == Q_NULLPTR)  // the Sun
-	{
-		return Vec3d(0., 0., 0.);
-	}
 	// Use current position if the time match.
 	if (fuzzyEquals(dateJDE, lastJDE))
 		return eclipticPos;
@@ -2071,11 +2049,6 @@ Vec3d Planet::getEclipticPos(double dateJDE) const
 // Return heliocentric ecliptical Cartesian J2000 coordinates of p [AU]
 Vec3d Planet::getHeliocentricPos(Vec3d p) const
 {
-	if (parent == Q_NULLPTR)  // the Sun
-	{
-		p.set(0., 0., 0.);
-		return p;
-	}
 	// Note: using shared copies is too slow here.  So we use direct access instead.
 	Vec3d pos = p;
 	const Planet* pp = parent.data();
@@ -2092,10 +2065,6 @@ Vec3d Planet::getHeliocentricPos(Vec3d p) const
 
 Vec3d Planet::getHeliocentricEclipticPos(double dateJDE) const
 {
-	if (parent == Q_NULLPTR)  // the Sun
-	{
-		return Vec3d(0., 0., 0.);
-	}
 	Vec3d pos = getEclipticPos(dateJDE);
 	const Planet* pp = parent.data();
 	if (pp)
@@ -2104,32 +2073,6 @@ Vec3d Planet::getHeliocentricEclipticPos(double dateJDE) const
 		{
 			pos += pp->getEclipticPos(dateJDE);
 			pp = pp->parent.data();
-		}
-	}
-	return pos;
-}
-
-Vec3d Planet::getBarycentricEclipticPos(double dateJDE) const
-{
-	Vec3d pos = getEclipticPos(dateJDE);
-	const Planet* pp = parent.data();
-	if (pp)
-	{
-		while (true)
-		{
-			// slightly different from getHeliocentricEclipticPos to finally add Sun barycentric position
-			if (pp->parent.data() == Q_NULLPTR)
-			{
-				Vec3d eclipticPosSun = Vec3d(0., 0., 0.);
-				Vec3d eclipticVelocitySun = Vec3d(0., 0., 0.);
-				pp->coordFunc(dateJDE, &eclipticPosSun[0], &eclipticVelocitySun[0], orbitPtr);
-				pos += eclipticPosSun;
-				break;
-			}
-			else{
-				pos += pp->getEclipticPos(dateJDE);
-				pp = pp->parent.data();
-			}
 		}
 	}
 	return pos;
@@ -2152,10 +2095,6 @@ void Planet::setHeliocentricEclipticPos(const Vec3d &pos)
 // Return heliocentric velocity of planet.
 Vec3d Planet::getHeliocentricEclipticVelocity() const
 {
-	if (parent == Q_NULLPTR)  // the Sun
-	{
-		return Vec3d(0., 0., 0.);
-	}
 	// Note: using shared copies is too slow here.  So we use direct access instead.
 	Vec3d vel = eclipticVelocity;
 	const Planet* pp = parent.data();
@@ -2165,34 +2104,6 @@ Vec3d Planet::getHeliocentricEclipticVelocity() const
 		{
 			vel += pp->eclipticVelocity;
 			pp = pp->parent.data();
-		}
-	}
-	return vel;
-}
-
-// Return barycentric velocity of planet.
-Vec3d Planet::getBarycentricEclipticVelocity(double dateJDE) const
-{
-	// Note: using shared copies is too slow here.  So we use direct access instead.
-	Vec3d vel = eclipticVelocity;
-	const Planet* pp = parent.data();
-	if (pp)
-	{
-		while (true)
-		{
-			// slightly different from getHeliocentricEclipticPos to finally add Sun barycentric position
-			if (pp->parent.data() == Q_NULLPTR)
-			{
-				Vec3d eclipticPosSun = Vec3d(0., 0., 0.);
-				Vec3d eclipticVelocitySun = Vec3d(0., 0., 0.);
-				pp->coordFunc(dateJDE, &eclipticPosSun[0], &eclipticVelocitySun[0], orbitPtr);
-				vel += eclipticVelocitySun;
-				break;
-			}
-			else{
-				vel += pp->eclipticVelocity;
-				pp = pp->parent.data();
-			}
 		}
 	}
 	return vel;
